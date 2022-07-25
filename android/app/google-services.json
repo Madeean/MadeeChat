@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "359919391154",
+    "project_id": "madeechat-app-firebase",
+    "storage_bucket": "madeechat-app-firebase.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:359919391154:android:08a508715de7da001254ab",
+        "android_client_info": {
+          "package_name": "com.madeean.madee_chat_app_firebase"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "359919391154-3uq16gd8ftlbm9fjgi9shkpa6eqrjh3c.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB6FvGag3heOwbfePvtCVKm3bsd8NN5-k4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "359919391154-3uq16gd8ftlbm9fjgi9shkpa6eqrjh3c.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
