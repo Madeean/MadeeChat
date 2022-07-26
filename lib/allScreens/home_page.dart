@@ -2,7 +2,10 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:madee_chat_app/allConstants/color_constants.dart';
 import 'package:madee_chat_app/allConstants/constants.dart';
@@ -27,6 +30,10 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  final FirebaseMessaging firebaseMessaging = FirebaseMessaging.instance;
+  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+      FlutterLocalNotificationsPlugin();
+
   final GoogleSignIn googleSignIn = GoogleSignIn();
   final ScrollController listScrollController = ScrollController();
 
@@ -73,6 +80,9 @@ class _HomePageState extends State<HomePage> {
           MaterialPageRoute(builder: (context) => LoginPage()),
           (route) => false);
     }
+
+    registerNotification();
+    configureLocalNotfication();
 
     listScrollController.addListener(scrollListener);
   }
@@ -233,6 +243,61 @@ class _HomePageState extends State<HomePage> {
           },
         ).toList();
       },
+    );
+  }
+
+  void registerNotification() {
+    firebaseMessaging.requestPermission();
+
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      if (message.notification != null) {
+        showNotification(message.notification!);
+      }
+      return;
+    });
+
+    firebaseMessaging.getToken().then((token) {
+      if (token != null) {
+        homeProvider.updateDataFirestore(FirestoreConstants.pathUserCollection,
+            currentUserId, {'pushToken': token});
+      }
+    }).catchError((err) {
+      Fluttertoast.showToast(msg: err.message.toString());
+    });
+  }
+
+  void configureLocalNotfication() {
+    AndroidInitializationSettings initializationAndroidSettings =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
+    IOSInitializationSettings initializationIosSettings =
+        IOSInitializationSettings();
+    InitializationSettings initializationSettings = InitializationSettings(
+        android: initializationAndroidSettings, iOS: initializationIosSettings);
+
+    flutterLocalNotificationsPlugin.initialize(initializationSettings);
+  }
+
+  void showNotification(RemoteNotification remoteNotification) async {
+    AndroidNotificationDetails androidNotificationDetails =
+        AndroidNotificationDetails(
+      "com.madeean.madee_chat_app_firebase",
+      "madee_chat_app",
+      playSound: true,
+      enableVibration: true,
+      importance: Importance.max,
+      priority: Priority.high,
+    );
+
+    IOSNotificationDetails iosNotificationDetails = IOSNotificationDetails();
+
+    NotificationDetails notificationDetails = NotificationDetails(
+        android: androidNotificationDetails, iOS: iosNotificationDetails);
+    await flutterLocalNotificationsPlugin.show(
+      0,
+      remoteNotification.title,
+      remoteNotification.body,
+      notificationDetails,
+      payload: null,
     );
   }
 
