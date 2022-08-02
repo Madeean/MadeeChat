@@ -53,6 +53,7 @@ class _SettingsPageStateState extends State<SettingsPageState> {
   String aboutMe = '';
   String photoUrl = '';
   String phoneNumber = '';
+  String loginWith = '';
 
   bool isloading = false;
   File? avatarImageFile;
@@ -117,6 +118,7 @@ class _SettingsPageStateState extends State<SettingsPageState> {
         nickname: nickname,
         photoUrl: photoUrl,
         phoneNumber: phoneNumber,
+        loginWith: loginWith,
       );
       settingProvider
           .updateDataFirestore(
@@ -157,6 +159,7 @@ class _SettingsPageStateState extends State<SettingsPageState> {
       nickname: nickname,
       aboutMe: aboutMe,
       phoneNumber: phoneNumber,
+      loginWith: loginWith,
     );
     settingProvider
         .updateDataFirestore(

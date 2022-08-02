@@ -20,6 +20,8 @@ class AuthProvider extends ChangeNotifier {
   final FirebaseAuth firebaseAuth;
   final FirebaseFirestore firebaseFirestore;
   final SharedPreferences sharedPreferences;
+  FirebaseAuth _auth = FirebaseAuth.instance;
+  CollectionReference _userRef = FirebaseFirestore.instance.collection('users');
 
   Status _status = Status.unitialized;
 
@@ -37,13 +39,130 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<bool> isLoggedIn() async {
+    User? user = FirebaseAuth.instance.currentUser;
     bool isLoggedIn = await googleSignIn.isSignedIn();
     if (isLoggedIn &&
-        sharedPreferences.getString(FirestoreConstants.id)?.isNotEmpty ==
-            true) {
+            sharedPreferences.getString(FirestoreConstants.id)?.isNotEmpty ==
+                true ||
+        user != null) {
       return true;
     } else {
       return false;
+    }
+  }
+
+  Future<bool> loginHandle(
+      {required String email, required String password}) async {
+    _status = Status.authenticating;
+    notifyListeners();
+    UserCredential userCredential = await _auth.signInWithEmailAndPassword(
+        email: email, password: password);
+
+    UserChat user = await getUser(userCredential.user!.uid);
+    if (user == null) {
+      _status = Status.authenticateError;
+      return false;
+    }
+    await sharedPreferences.setString(FirestoreConstants.id, user.id);
+    await sharedPreferences.setString(
+        FirestoreConstants.nickname, user.nickname);
+    await sharedPreferences.setString(
+        FirestoreConstants.photoUrl, user.photoUrl);
+    await sharedPreferences.setString(FirestoreConstants.aboutMe, user.aboutMe);
+    await sharedPreferences.setString(
+        FirestoreConstants.phoneNumber, user.phoneNumber);
+    print(user);
+    _status = Status.authenticated;
+    return true;
+  }
+
+  Future<UserChat> getUser(String id) async {
+    UserChat? user;
+    await _userRef.doc(id).get().then((acc) {
+      user = UserChat(
+        id: id,
+        photoUrl: acc.get('photoUrl'),
+        nickname: acc.get('username'),
+        aboutMe: acc.get('aboutMe'),
+        phoneNumber: "",
+        loginWith: acc.get('loginWith'),
+      );
+    });
+
+    return user!;
+  }
+
+  Future<bool> registerHandle({
+    required String email,
+    required String password,
+    required String nickname,
+  }) async {
+    _status = Status.authenticating;
+    notifyListeners();
+    String photoUrl =
+        "https://avatars.abstractapi.com/v1/?api_key=f4964acb34534e2cb2e20829efac27d2&name=$nickname";
+    String aboutMe = "";
+    String createdAt = DateTime.now().millisecondsSinceEpoch.toString();
+
+    UserChat user = await signUp(
+        email: email,
+        password: password,
+        nickname: nickname,
+        aboutMe: aboutMe,
+        createdAt: createdAt,
+        photoUrl: photoUrl);
+
+    if (user == null) {
+      _status = Status.authenticateError;
+      return false;
+    }
+    await sharedPreferences.setString(FirestoreConstants.id, user.id);
+    await sharedPreferences.setString(
+        FirestoreConstants.nickname, user.nickname);
+    await sharedPreferences.setString(
+        FirestoreConstants.photoUrl, user.photoUrl);
+    await sharedPreferences.setString(FirestoreConstants.aboutMe, user.aboutMe);
+    await sharedPreferences.setString(
+        FirestoreConstants.phoneNumber, user.phoneNumber);
+    print(user);
+    _status = Status.authenticated;
+    return true;
+  }
+
+  Future<UserChat> signUp({
+    required String email,
+    required String password,
+    required String nickname,
+    required String photoUrl,
+    required String aboutMe,
+    required String createdAt,
+  }) async {
+    try {
+      UserCredential userCredential = await _auth
+          .createUserWithEmailAndPassword(email: email, password: password);
+
+      print(userCredential);
+
+      UserChat user = UserChat(
+          id: userCredential.user!.uid,
+          photoUrl: photoUrl,
+          nickname: nickname,
+          aboutMe: aboutMe,
+          phoneNumber: "",
+          loginWith: "email");
+
+      _userRef.doc(user.id).set({
+        'chattingWith': null,
+        "createdAt": createdAt,
+        'id': user.id,
+        'nickname': nickname,
+        'photoUrl': photoUrl,
+        'loginWith': "email",
+      });
+
+      return user;
+    } catch (e) {
+      throw e;
     }
   }
 
@@ -79,6 +198,7 @@ class AuthProvider extends ChangeNotifier {
             FirestoreConstants.id: firebaseUser.uid,
             'createdAt': DateTime.now().millisecondsSinceEpoch.toString(),
             FirestoreConstants.chattingWith: null,
+            "loginWith": "google",
           });
 
           User? currentUser = firebaseUser;
@@ -92,6 +212,7 @@ class AuthProvider extends ChangeNotifier {
               FirestoreConstants.photoUrl, currentUser.photoURL ?? "");
           await sharedPreferences.setString(
               FirestoreConstants.phoneNumber, currentUser.phoneNumber ?? "");
+          // await sharedPreferences.setString("loginWith", currentUser.loginWith ?? "");
         } else {
           DocumentSnapshot documentSnapshot = document[0];
           UserChat userchat = UserChat.fromDocument(documentSnapshot);
@@ -123,8 +244,14 @@ class AuthProvider extends ChangeNotifier {
 
   Future<void> handleSignOut() async {
     _status = Status.unitialized;
-    await firebaseAuth.signOut();
-    await googleSignIn.disconnect();
-    await googleSignIn.signOut();
+    User? user = FirebaseAuth.instance.currentUser;
+
+    if (user != null) {
+      await _auth.signOut();
+      await firebaseAuth.signOut();
+    } else {
+      await googleSignIn.disconnect();
+      await googleSignIn.signOut();
+    }
   }
 }
