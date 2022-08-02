@@ -8,6 +8,7 @@ class UserChat {
   String nickname;
   String aboutMe;
   String phoneNumber;
+  String loginWith;
 
   UserChat({
     required this.id,
@@ -15,6 +16,7 @@ class UserChat {
     required this.nickname,
     required this.aboutMe,
     required this.phoneNumber,
+    required this.loginWith,
   });
 
   Map<String, String> toJson() {
@@ -23,6 +25,7 @@ class UserChat {
       FirestoreConstants.aboutMe: aboutMe,
       FirestoreConstants.photoUrl: photoUrl,
       FirestoreConstants.phoneNumber: phoneNumber,
+      "loginWith": loginWith,
     };
   }
 
@@ -31,6 +34,7 @@ class UserChat {
     String photoUrl = "";
     String nickname = "";
     String phoneNumber = "";
+    String loginWith = "";
     try {
       aboutMe = doc.get(FirestoreConstants.aboutMe);
     } catch (e) {}
@@ -43,12 +47,16 @@ class UserChat {
     try {
       phoneNumber = doc.get(FirestoreConstants.phoneNumber);
     } catch (e) {}
+    try {
+      loginWith = doc.get("loginWith");
+    } catch (e) {}
     return UserChat(
       id: doc.id,
       photoUrl: photoUrl,
       nickname: nickname,
       aboutMe: aboutMe,
       phoneNumber: phoneNumber,
+      loginWith: loginWith,
     );
   }
 }
